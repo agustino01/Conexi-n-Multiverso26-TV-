@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Transmisión En Vivo: Conexión Multiverso</title>
+    <style>
+        body {
+            margin: 0; padding: 0; background: radial-gradient(circle, #1b003a, #050014);
+            color: #ffffff; font-family: 'Impact', sans-serif; height: 100vh;
+            display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+        }
+        .InterfazSuperior { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 30px; }
+        .ContenedorVida { width: 40%; }
+        .NombreLuchador { font-size: 2.5rem; text-shadow: 3px 3px #000; margin-bottom: 10px; }
+        .BarraVida { height: 35px; background-color: #ff0000; border: 3px solid #ffffff; }
+        .RellenoVida { height: 100%; background-color: #ffff00; width: 100%; transition: width 0.1s; }
+        .ContadorTiempo { font-size: 5rem; color: #ff0000; }
+        
+        /* Escenario Donde Se Mueven Los Jugadores */
+        .EscenarioPelea { flex-grow: 1; position: relative; width: 100vw; background: rgba(0,0,0,0.2); }
+        .PersonajeVirtual {
+            position: absolute; bottom: 50px; width: 100px; height: 180px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 1.5rem; border-radius: 10px; transition: left 0.2s, bottom 0.2s;
+        }
+        #AvatarP1 { background: #00ffcc; color: #000; left: 15%; }
+        #AvatarP2 { background: #ff007f; color: #fff; left: 75%; }
+        .EfectoMovimiento { font-size: 1.2rem; color: #ffff00; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 5px; }
+        #ClavePantalla { position: absolute; top: 10px; left: 45%; background: rgba(0,0,0,0.7); padding: 5px 15px; font-size: 1.2rem; color: #ffff00; }
+    </style>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div id="ClavePantalla">Clave TV: <span id="CodigoTv">...</span></div>
+
+    <div class="InterfazSuperior">
+        <div class="ContenedorVida">
+            <div class="NombreLuchador">Jugador Uno</div>
+            <div class="BarraVida"><div id="VidaP1" class="RellenoVida"></div></div>
+        </div>
+        <div class="ContadorTiempo" id="Reloj">99</div>
+        <div class="ContenedorVida">
+            <div class="NombreLuchador" style="text-align: right;">Jugador Dos</div>
+            <div class="BarraVida"><div id="VidaP2" class="RellenoVida"></div></div>
+        </div>
+    </div>
+
+    <div class="EscenarioPelea">
+        <div id="AvatarP1" class="PersonajeVirtual">
+            <div>J1</div>
+            <div id="AccionP1" class="EfectoMovimiento">Quieto</div>
+        </div>
+        <div id="AvatarP2" class="PersonajeVirtual">
+            <div>J2</div>
+            <div id="AccionP2" class="EfectoMovimiento">Quieto</div>
+        </div>
+    </div>
+
+    <script>
+        const PeerTv = new Peer();
+        let PosicionP1 = 15;
+        let PosicionP2 = 75;
+
+        PeerTv.on('open', (Id) => {
+            document.getElementById("CodigoTv").innerText = Id;
+        });
+
+        // Aceptar Conexiones De Ambos Teléfonos
+        PeerTv.on('connection', (ConexionMando) => {
+            ConexionMando.on('data', (Datos) => {
+                ActualizarTransmision(Datos.De, Datos.Accion);
+            });
+        });
+
+        function ActualizarTransmision(Jugador, Movimiento) {
+            const Avatar = document.getElementById(`AvatarP${Jugador}`);
+            const CuadroTexto = document.getElementById(`AccionP${Jugador}`);
+            CuadroTexto.innerText = Movimiento;
+
+            // Lógica Para Que Se Muevan A La Derecha O Izquierda En La Tele
+            if (Movimiento === "Derecha") {
+                if(Jugador === 1) { PosicionP1 += 5; Avatar.style.left = PosicionP1 + "%"; }
+                if(Jugador === 2) { PosicionP2 += 5; Avatar.style.left = PosicionP2 + "%"; }
+            }
+            if (Movimiento === "Izquierda") {
+                if(Jugador === 1) { PosicionP1 -= 5; Avatar.style.left = PosicionP1 + "%"; }
+                if(Jugador === 2) { PosicionP2 -= 5; Avatar.style.left = PosicionP2 + "%"; }
+            }
+            if (Movimiento === "Arriba") {
+                Avatar.style.bottom = "150px";
+                setTimeout(() => { Avatar.style.bottom = "50px"; }, 300);
+            }
+
+            // Registrar Golpes En Las Barras De Vida De La Tele
+            if (Movimiento.includes("Golpe") || Movimiento.includes("Patada")) {
+                const Objetivo = Jugador === 1 ? 2 : 1;
+                let Barra = document.getElementById(`VidaP${Objetivo}`);
+                let Vida = parseInt(Barra.style.width) || 100;
+                if(Vida > 0) {
+                    Vida -= 6;
+                    Barra.style.width = Vida + "%";
+                }
+            }
+        }
+
+        // Reloj De La Ronda
+        let Tiempo = 99;
+        setInterval(() => {
+            if(Tiempo > 0) {
+                Tiempo--;
+                document.getElementById("Reloj").innerText = Tiempo;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
